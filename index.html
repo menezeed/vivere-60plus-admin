@@ -295,7 +295,9 @@ function ActivitiesTab({ showToast }) {
     setSaving(true);
     try {
       if (modal === 'new') {
-        await db.post('activities', form);
+        const today = new Date().toISOString().slice(0, 10);
+        const body = { ...form, start_date: form.start_date || today };
+        await db.post('activities', body);
         showToast('Atividade criada!', 'success');
       } else {
         await db.patch('activities', form.id, form);
