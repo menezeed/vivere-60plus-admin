@@ -168,8 +168,11 @@ const db = {
     return r.json();
   },
   async patch(table, id, body) {
+    console.log('PATCH', table, id, 'token:', this.token ? 'OK' : 'MISSING');
     const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, { method: 'PATCH', headers: this.getHeaders(), body: JSON.stringify(body) });
-    return r.json();
+    const data = await r.json();
+    console.log('PATCH response:', r.status, data);
+    return data;
   },
   async delete(table, id) {
     await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, { method: 'DELETE', headers: this.getHeaders() });
@@ -203,6 +206,7 @@ function LoginPage({ onLogin }) {
     const data = await db.auth(email, password);
     if (data.access_token) {
       db.token = data.access_token;
+      sessionStorage.setItem('sb_token', data.access_token);
       onLogin(data);
     } else {
       setError('Email ou senha inválidos.');
@@ -646,6 +650,11 @@ function UsersTab({ showToast }) {
 // ─── App ─────────────────────────────────────────────────────
 function App() {
   const [session, setSession] = useState(null);
+  // Restore token on reload
+  React.useEffect(() => {
+    const t = sessionStorage.getItem('sb_token');
+    if (t) db.token = t;
+  }, []);
   const [tab, setTab]         = useState('activities');
   const [toast, setToast]     = useState(null);
 
@@ -680,7 +689,7 @@ function App() {
         </nav>
         <div className="sidebar-footer">
           {session.user?.email}<br/>
-          <span style={{cursor:'pointer',textDecoration:'underline'}} onClick={()=>setSession(null)}>Sair</span>
+          <span style={{cursor:'pointer',textDecoration:'underline'}} onClick={()=>{ db.token=null; sessionStorage.removeItem('sb_token'); setSession(null); }}>Sair</span>
         </div>
       </div>
 
