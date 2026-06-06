@@ -164,7 +164,7 @@ const db = {
     return r.json();
   },
   async post(table, body) {
-    console.log('POST', table, body, 'token:', this.token ? 'OK' : 'MISSING');
+    console.log('POST', table, JSON.stringify(body), 'token:', this.token ? 'OK' : 'MISSING');
     const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, { method: 'POST', headers: this.getHeaders(), body: JSON.stringify(body) });
     const text = await r.text();
     console.log('POST response:', r.status, text);
@@ -282,7 +282,7 @@ function ActivitiesTab({ showToast }) {
   }
 
   function openNew() {
-    setForm({ title:'', description:'', category:'', venue_id:'', schedule:'', price:0, is_free:false, is_sponsored:false, start_date:'', end_date:'' });
+    setForm({ title:'', description:'', category:'', venue_id:null, schedule:'', price:0, is_free:false, is_sponsored:false, start_date:null, end_date:null });
     setModal('new');
   }
 
