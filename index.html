@@ -164,8 +164,11 @@ const db = {
     return r.json();
   },
   async post(table, body) {
+    console.log('POST', table, body, 'token:', this.token ? 'OK' : 'MISSING');
     const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, { method: 'POST', headers: this.getHeaders(), body: JSON.stringify(body) });
-    return r.json();
+    const text = await r.text();
+    console.log('POST response:', r.status, text);
+    try { return JSON.parse(text); } catch { return {}; }
   },
   async patch(table, id, body) {
     console.log('PATCH', table, id, 'token:', this.token ? 'OK' : 'MISSING');
