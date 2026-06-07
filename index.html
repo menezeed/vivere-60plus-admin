@@ -562,6 +562,7 @@ function VenuesTab({ showToast }) {
             <div className="form-group"><label>Longitude (ex: -46.6642)</label><input type="number" step="0.0001" min="-180" max="180" value={form.lng||''} onChange={e=>setForm({...form,lng:e.target.value})} placeholder="-46.6642" /></div>
             <div className="form-group form-full"><label>Horário de Funcionamento</label><input value={form.opening_hours||''} onChange={e=>setForm({...form,opening_hours:e.target.value})} placeholder="Seg-Sex 9h-18h / Sáb 9h-13h" /></div>
             <div className="form-group form-full"><label>Website</label><input value={form.website||''} onChange={e=>setForm({...form,website:e.target.value})} placeholder="https://..." /></div>
+            <div className="form-group form-full"><label>Telefone (com código do país)</label><input value={form.phone||''} onChange={e=>setForm({...form,phone:e.target.value})} placeholder="+55 11 99999-9999" /></div>
             <div className="form-group form-full"><label>URL da Imagem</label><input value={form.image_url||''} onChange={e=>setForm({...form,image_url:e.target.value})} placeholder="https://..." /></div>
           </div>
           <div className="form-actions">
