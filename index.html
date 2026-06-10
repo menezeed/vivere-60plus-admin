@@ -526,7 +526,7 @@ function VenuesTab({ showToast }) {
       const name = data.displayName?.text || fullText.split(',')[0];
       setForm(f => ({
         ...f,
-        name: f.name || name,
+        name: name,
         address: data.formattedAddress || fullText,
         lat: data.location?.latitude ?? '',
         lng: data.location?.longitude ?? '',
@@ -620,6 +620,7 @@ function VenuesTab({ showToast }) {
                 </div>
               )}
             </div>
+            <div className="form-group form-full"><label>Nome</label><input value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Nome do local" /></div>
             <div className="form-group form-full"><label>Endereço completo</label><input value={form.address||''} onChange={e=>setForm({...form,address:e.target.value})} placeholder="Preenchido automaticamente" /></div>
             <div className="form-group"><label>Latitude</label><input readOnly value={form.lat||''} style={{background:'var(--bg)',color:'var(--muted)'}} placeholder="Auto" /></div>
             <div className="form-group"><label>Longitude</label><input readOnly value={form.lng||''} style={{background:'var(--bg)',color:'var(--muted)'}} placeholder="Auto" /></div>
