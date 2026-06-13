@@ -812,6 +812,170 @@ function UsersTab({ showToast }) {
   );
 }
 
+// ─── Categories ──────────────────────────────────────────────
+function CategoriesTab({ showToast }) {
+  const DEFAULT_CATS = [
+    { key: 'Teatro',    emoji: '🎭', cor: '#F59E0B', label_pt: 'Teatro',            label_en: 'Theatre' },
+    { key: 'Shows',     emoji: '🎵', cor: '#8B5CF6', label_pt: 'Shows',             label_en: 'Shows' },
+    { key: 'Esportes',  emoji: '🏊', cor: '#10B981', label_pt: 'Esportes',          label_en: 'Sports' },
+    { key: 'Cursos',    emoji: '📚', cor: '#EF4444', label_pt: 'Cursos',            label_en: 'Courses' },
+    { key: 'Museu',     emoji: '🏛️', cor: '#3B82F6', label_pt: 'Museu',             label_en: 'Museum' },
+    { key: 'Saúde',     emoji: '🧘', cor: '#059669', label_pt: 'Saúde',             label_en: 'Health' },
+    { key: 'Dança',     emoji: '💃', cor: '#EC4899', label_pt: 'Dança',             label_en: 'Dance' },
+    { key: 'Gastronomia', emoji: '🍽️', cor: '#D97706', label_pt: 'Gastronomia',   label_en: 'Food' },
+  ];
+
+  const [cats, setCats]     = useState(DEFAULT_CATS);
+  const [modal, setModal]   = useState(null); // null | 'new' | cat
+  const [form, setForm]     = useState({});
+
+  function openNew() {
+    setForm({ key: '', emoji: '', cor: '#1B6B45', label_pt: '', label_en: '' });
+    setModal('new');
+  }
+
+  function openEdit(cat) {
+    setForm({ ...cat });
+    setModal(cat);
+  }
+
+  function save() {
+    if (!form.key || !form.emoji || !form.label_pt) {
+      showToast('Preenche Chave, Emoji e Nome PT.', 'error');
+      return;
+    }
+    if (modal === 'new') {
+      if (cats.find(c => c.key === form.key)) {
+        showToast('Já existe uma categoria com essa chave.', 'error');
+        return;
+      }
+      setCats([...cats, form]);
+      showToast('Categoria criada!', 'success');
+    } else {
+      setCats(cats.map(c => c.key === modal.key ? form : c));
+      showToast('Categoria atualizada!', 'success');
+    }
+    setModal(null);
+  }
+
+  function remove(key) {
+    if (!confirm('Apagar esta categoria? As atividades com esta categoria não serão apagadas.')) return;
+    setCats(cats.filter(c => c.key !== key));
+    showToast('Categoria apagada.', 'success');
+  }
+
+  return (
+    <>
+      <div style={{background:'var(--warn-l)',border:'1px solid var(--warn)',borderRadius:10,padding:'12px 16px',marginBottom:20,fontSize:13,color:'var(--warn)',display:'flex',gap:10,alignItems:'flex-start'}}>
+        <span style={{fontSize:16}}>⚠️</span>
+        <div>
+          <strong>Categorias são geridas localmente no admin.</strong> Para aplicar alterações no app, actualiza também os ficheiros <code>pt.js</code> e <code>en.js</code> com os mesmos nomes e emojis. A chave (Key) deve coincidir com o campo <code>category</code> das atividades no Supabase.
+        </div>
+      </div>
+
+      <div className="stats-grid" style={{gridTemplateColumns:'repeat(3,1fr)'}}>
+        <div className="stat-card"><div className="stat-label">Total</div><div className="stat-value">{cats.length}</div></div>
+        <div className="stat-card"><div className="stat-label">Com Emoji</div><div className="stat-value">{cats.filter(c=>c.emoji).length}</div></div>
+        <div className="stat-card"><div className="stat-label">Com Tradução EN</div><div className="stat-value">{cats.filter(c=>c.label_en).length}</div></div>
+      </div>
+
+      <div className="table-card">
+        <div className="table-header">
+          <span style={{fontSize:15,fontWeight:600}}>Categorias do App</span>
+          <button className="btn btn-primary" onClick={openNew}>+ Nova Categoria</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Emoji</th>
+              <th>Chave (Key)</th>
+              <th>Nome PT</th>
+              <th>Nome EN</th>
+              <th>Cor</th>
+              <th>Preview</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {cats.map(cat => (
+              <tr key={cat.key}>
+                <td style={{fontSize:24,textAlign:'center'}}>{cat.emoji}</td>
+                <td><code style={{background:'var(--bg)',padding:'2px 8px',borderRadius:4,fontSize:12,fontWeight:600}}>{cat.key}</code></td>
+                <td><strong>{cat.label_pt}</strong></td>
+                <td style={{color:'var(--muted)'}}>{cat.label_en}</td>
+                <td>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <div style={{width:20,height:20,borderRadius:4,background:cat.cor,border:'1px solid var(--border)'}}></div>
+                    <span style={{fontSize:12,color:'var(--muted)'}}>{cat.cor}</span>
+                  </div>
+                </td>
+                <td>
+                  <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'6px 14px',borderRadius:20,background:cat.cor,color:'#fff',fontSize:13,fontWeight:700}}>
+                    {cat.emoji} {cat.label_pt}
+                  </div>
+                </td>
+                <td>
+                  <div style={{display:'flex',gap:6}}>
+                    <button className="btn btn-outline btn-sm" onClick={()=>openEdit(cat)}>✏️ Editar</button>
+                    <button className="btn btn-danger btn-sm" onClick={()=>remove(cat.key)}>🗑️</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {modal !== null && (
+        <Modal title={modal==='new'?'Nova Categoria':'Editar Categoria'} onClose={()=>setModal(null)}>
+          <div className="form-grid">
+            <div className="form-group">
+              <label>Chave (Key)</label>
+              <input
+                value={form.key||''}
+                onChange={e=>setForm({...form,key:e.target.value})}
+                placeholder="Ex: Teatro"
+                disabled={modal!=='new'}
+                style={modal!=='new'?{background:'var(--bg)',color:'var(--muted)'}:{}}
+              />
+              <span style={{fontSize:11,color:'var(--muted)',marginTop:2}}>Deve coincidir com o campo category no Supabase</span>
+            </div>
+            <div className="form-group">
+              <label>Emoji</label>
+              <input value={form.emoji||''} onChange={e=>setForm({...form,emoji:e.target.value})} placeholder="🎭" style={{fontSize:22}} />
+            </div>
+            <div className="form-group">
+              <label>Nome PT</label>
+              <input value={form.label_pt||''} onChange={e=>setForm({...form,label_pt:e.target.value})} placeholder="Teatro" />
+            </div>
+            <div className="form-group">
+              <label>Nome EN</label>
+              <input value={form.label_en||''} onChange={e=>setForm({...form,label_en:e.target.value})} placeholder="Theatre" />
+            </div>
+            <div className="form-group">
+              <label>Cor</label>
+              <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                <input type="color" value={form.cor||'#1B6B45'} onChange={e=>setForm({...form,cor:e.target.value})} style={{width:44,height:40,borderRadius:8,border:'1px solid var(--border)',cursor:'pointer',padding:2}} />
+                <input value={form.cor||''} onChange={e=>setForm({...form,cor:e.target.value})} placeholder="#1B6B45" style={{flex:1}} />
+              </div>
+            </div>
+            <div className="form-group" style={{justifyContent:'flex-end',alignItems:'flex-end'}}>
+              <label>Preview</label>
+              <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'8px 16px',borderRadius:20,background:form.cor||'#1B6B45',color:'#fff',fontSize:14,fontWeight:700}}>
+                {form.emoji||'?'} {form.label_pt||'Categoria'}
+              </div>
+            </div>
+          </div>
+          <div className="form-actions">
+            <button className="btn btn-outline" onClick={()=>setModal(null)}>Cancelar</button>
+            <button className="btn btn-primary" onClick={save}>Salvar</button>
+          </div>
+        </Modal>
+      )}
+    </>
+  );
+}
+
 // ─── App ─────────────────────────────────────────────────────
 function App() {
   const [session, setSession] = useState(null);
@@ -870,10 +1034,11 @@ function App() {
     { id:'activities', icon:'📅', label:'Atividades' },
     { id:'venues',     icon:'📍', label:'Locais' },
     { id:'partners',   icon:'🤝', label:'Parceiros' },
+    { id:'categories', icon:'🏷️', label:'Categorias' },
     { id:'users',      icon:'👤', label:'Utilizadores' },
   ];
 
-  const TITLES = { activities:'Atividades', venues:'Locais', partners:'Parceiros', users:'Utilizadores' };
+  const TITLES = { activities:'Atividades', venues:'Locais', partners:'Parceiros', categories:'Categorias', users:'Utilizadores' };
 
   return (
     <div className="layout">
@@ -960,6 +1125,7 @@ function App() {
           {tab==='activities' && <ActivitiesTab showToast={showToast} />}
           {tab==='venues'     && <VenuesTab     showToast={showToast} />}
           {tab==='partners'   && <PartnersTab   showToast={showToast} />}
+          {tab==='categories' && <CategoriesTab showToast={showToast} />}
           {tab==='users'      && <UsersTab      showToast={showToast} />}
         </div>
       </div>
