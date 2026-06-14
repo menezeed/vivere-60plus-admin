@@ -812,6 +812,7 @@ function UsersTab({ showToast }) {
   );
 }
 
+
 // ─── Suggestions ─────────────────────────────────────────────
 function SuggestionsTab({ showToast }) {
   const [rows, setRows]         = useState([]);
@@ -886,10 +887,7 @@ function SuggestionsTab({ showToast }) {
           <tbody>
             {filtered.map(r => (
               <tr key={r.id}>
-                <td>
-                  <strong>{r.title}</strong>
-                  {r.comment && <div style={{fontSize:12,color:'var(--muted)',marginTop:3,maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={r.comment}>💬 {r.comment}</div>}
-                </td>
+                <td><strong>{r.title}</strong>{r.comment && <div style={{fontSize:12,color:'var(--muted)',marginTop:3,maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={r.comment}>💬 {r.comment}</div>}</td>
                 <td style={{color:'var(--muted)',fontSize:13,maxWidth:180,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.location||'—'}</td>
                 <td style={{fontSize:13}}>{r.phone||'—'}</td>
                 <td style={{fontSize:12,color:'var(--muted)'}}>{r.email||'—'}</td>
@@ -899,8 +897,7 @@ function SuggestionsTab({ showToast }) {
                 <td>
                   <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
                     {(!r.status||r.status==='pending') && <><button className="btn btn-primary btn-sm" onClick={()=>updateStatus(r.id,'approved')}>✅</button><button className="btn btn-danger btn-sm" onClick={()=>updateStatus(r.id,'rejected')}>❌</button></>}
-                    {r.status==='approved' && <button className="btn btn-outline btn-sm" onClick={()=>updateStatus(r.id,'pending')}>↩️</button>}
-                    {r.status==='rejected' && <button className="btn btn-outline btn-sm" onClick={()=>updateStatus(r.id,'pending')}>↩️</button>}
+                    {(r.status==='approved'||r.status==='rejected') && <button className="btn btn-outline btn-sm" onClick={()=>updateStatus(r.id,'pending')}>↩️</button>}
                     {r.comment && <button className="btn btn-outline btn-sm" onClick={()=>setSelected(r)}>💬</button>}
                     <button className="btn btn-danger btn-sm" onClick={()=>remove(r.id)}>🗑️</button>
                   </div>
@@ -1039,7 +1036,6 @@ function App() {
     { key: 'Dança',       emoji: '💃', cor: '#EC4899', label_pt: 'Dança',       label_en: 'Dance' },
     { key: 'Gastronomia', emoji: '🍽️', cor: '#D97706', label_pt: 'Gastronomia', label_en: 'Food' },
     { key: 'Eventos',     emoji: '🎪', cor: '#6366F1', label_pt: 'Eventos',     label_en: 'Events' },
-    { key: 'Events',      emoji: '🎪', cor: '#6366F1', label_pt: 'Eventos',     label_en: 'Events' },
   ]);
 
   async function searchLocation(text) {
@@ -1079,13 +1075,15 @@ function App() {
   if (!session) return <LoginPage onLogin={setSession} />;
 
   const TABS = [
-    { id:'activities', icon:'📅', label:'Atividades' },
-    { id:'venues',     icon:'📍', label:'Locais' },
-    { id:'partners',   icon:'🤝', label:'Parceiros' },
-    { id:'users',      icon:'👤', label:'Utilizadores' },
+    { id:'activities',  icon:'📅', label:'Atividades' },
+    { id:'venues',      icon:'📍', label:'Locais' },
+    { id:'partners',    icon:'🤝', label:'Parceiros' },
+    { id:'categories',  icon:'🏷️', label:'Categorias' },
+    { id:'suggestions', icon:'💡', label:'Sugestões' },
+    { id:'users',       icon:'👤', label:'Utilizadores' },
   ];
 
-  const TITLES = { activities:'Atividades', venues:'Locais', partners:'Parceiros', users:'Utilizadores' };
+  const TITLES = { activities:'Atividades', venues:'Locais', partners:'Parceiros', categories:'Categorias', suggestions:'Sugestões', users:'Utilizadores' };
 
   return (
     <div className="layout">
@@ -1169,10 +1167,12 @@ function App() {
           )}
         </div>
         <div className="content">
-          {tab==='activities' && <ActivitiesTab showToast={showToast} />}
-          {tab==='venues'     && <VenuesTab     showToast={showToast} />}
-          {tab==='partners'   && <PartnersTab   showToast={showToast} />}
-          {tab==='users'      && <UsersTab      showToast={showToast} />}
+          {tab==='activities'  && <ActivitiesTab  showToast={showToast} categories={categories} />}
+          {tab==='venues'      && <VenuesTab      showToast={showToast} />}
+          {tab==='partners'    && <PartnersTab    showToast={showToast} />}
+          {tab==='categories'  && <CategoriesTab  showToast={showToast} categories={categories} setCategories={setCategories} />}
+          {tab==='suggestions' && <SuggestionsTab showToast={showToast} />}
+          {tab==='users'       && <UsersTab       showToast={showToast} />}
         </div>
       </div>
 
