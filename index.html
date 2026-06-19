@@ -343,13 +343,37 @@ function ActivitiesTab({ showToast, categories = [] }) {
             return matchText && matchCat && matchVen;
           });
 
+  // Verifica quais campos obrigatórios estão em falta para a atividade aparecer corretamente no app
+  function checkCompleteness(r) {
+    const missing = [];
+    if (!r.title)                                          missing.push('Título');
+    if (!r.category)                                       missing.push('Categoria');
+    if (!r.venue_id)                                        missing.push('Local');
+    if (!r.recurrence_type || r.recurrence_type === 'none') {
+      if (!r.start_date) missing.push('Data de início');
+    } else if (r.recurrence_type === 'weekly' || r.recurrence_type === 'monthly') {
+      if (!r.recurrence_days || r.recurrence_days.length === 0) missing.push('Dias da recorrência');
+      if (!r.recurrence_time) missing.push('Horário da recorrência');
+    }
+    if (!r.recurrence_type || r.recurrence_type === 'none') {
+      if (!r.schedule) missing.push('Horário (schedule)');
+    }
+    if (!r.is_free && (!r.price || r.price <= 0)) missing.push('Preço (ou marcar Gratuita)');
+    return missing;
+  }
+
   return (
     <>
-      <div className="stats-grid">
+      <div className="stats-grid" style={{gridTemplateColumns:'repeat(5,1fr)'}}>
         <div className="stat-card"><div className="stat-label">Total</div><div className="stat-value">{rows.length}</div></div>
         <div className="stat-card"><div className="stat-label">Activas</div><div className="stat-value">{rows.filter(r=>!r.end_date||new Date(r.end_date)>=new Date()).length}</div></div>
         <div className="stat-card"><div className="stat-label">Gratuitas</div><div className="stat-value">{rows.filter(r=>r.is_free).length}</div></div>
         <div className="stat-card"><div className="stat-label">Patrocinadas</div><div className="stat-value">{rows.filter(r=>r.is_sponsored).length}</div></div>
+        <div className="stat-card" style={{borderColor:'var(--warn)'}}><div className="stat-label">Pendentes</div><div className="stat-value" style={{color:'var(--warn)'}}>{rows.filter(r=>checkCompleteness(r).length>0).length}</div></div>
+      </div>
+
+      <div style={{background:'var(--green-l)',border:'1px solid var(--green)',borderRadius:10,padding:'12px 16px',marginBottom:20,fontSize:13,color:'var(--green)'}}>
+        <strong>📋 Campos obrigatórios para a atividade aparecer no app:</strong> Título, Categoria, Local, e (Data de início OU Recorrência com dias+horário). Sem preço definido, marca "Gratuita". Passa o rato sobre o badge "⚠️ pendente" na tabela para ver exatamente o que falta em cada atividade.
       </div>
 
       <div className="table-card">
@@ -380,16 +404,25 @@ function ActivitiesTab({ showToast, categories = [] }) {
         {loading ? <div className="loading"><div className="spinner"/><div>Carregando...</div></div> :
         filtered.length === 0 ? <div className="empty"><div className="icon">📅</div><div>Nenhuma atividade encontrada.</div></div> :
         <table>
-          <thead><tr><th>Título</th><th>Categoria</th><th>Recorrência</th><th>Horário</th><th>Preço</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>Título</th><th>Local</th><th>Categoria</th><th>Recorrência</th><th>Horário</th><th>Preço</th><th>Completude</th><th></th></tr></thead>
           <tbody>
-            {filtered.map(r => (
+            {filtered.map(r => {
+              const missing = checkCompleteness(r);
+              const isComplete = missing.length === 0;
+              return (
               <tr key={r.id}>
                 <td><strong>{r.title}</strong></td>
+                <td style={{color:'var(--muted)',fontSize:13}}>{venues.find(v=>v.id===r.venue_id)?.name || '—'}</td>
                 <td><span className="badge badge-gray">{r.category}</span></td>
                 <td>{r.recurrence_type && r.recurrence_type!=='none' ? <span className="badge badge-green">{r.recurrence_type==='daily'?'Diário':r.recurrence_type==='weekly'?'Semanal':'Mensal'}</span> : <span className="badge badge-gray">Único</span>}</td>
                 <td style={{color:'var(--muted)',fontSize:13}}>{r.schedule}</td>
                 <td>{r.is_free ? <span className="badge badge-green">Grátis</span> : `R$ ${r.price}`}</td>
-                <td>{r.is_sponsored ? <span className="badge badge-warn">Parceiro</span> : <span className="badge badge-gray">Normal</span>}</td>
+                <td>
+                  {isComplete
+                    ? <span className="badge badge-green" title="Todos os campos obrigatórios preenchidos">✅ Completa</span>
+                    : <span className="badge badge-warn" title={`Falta: ${missing.join(', ')}`}>⚠️ {missing.length} pendente{missing.length>1?'s':''}</span>
+                  }
+                </td>
                 <td>
                   <div style={{display:'flex',gap:6}}>
                     <button className="btn btn-outline btn-sm" onClick={()=>openEdit(r)}>✏️ Editar</button>
@@ -398,7 +431,8 @@ function ActivitiesTab({ showToast, categories = [] }) {
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>}
       </div>
