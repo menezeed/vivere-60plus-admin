@@ -354,10 +354,10 @@ function ActivitiesTab({ showToast, categories = [] }) {
       if (!r.start_date) missing.push('Data de início');
     } else if (r.recurrence_type === 'weekly' || r.recurrence_type === 'monthly') {
       if (!r.recurrence_days || r.recurrence_days.length === 0) missing.push('Dias da recorrência');
-      if (!r.recurrence_time) missing.push('Horário da recorrência');
+      if (!r.recurrence_time) missing.push('Horário da recorrência (para eventos repetidos)');
     }
     if (!r.recurrence_type || r.recurrence_type === 'none') {
-      if (!r.schedule) missing.push('Horário (schedule)');
+      if (!r.schedule) missing.push('Horário (para evento único)');
     }
     if (!r.is_free && (!r.price || r.price <= 0)) missing.push('Preço (ou marcar Gratuita)');
     return missing;
@@ -465,8 +465,8 @@ function ActivitiesTab({ showToast, categories = [] }) {
               </select>
             </div>
             <div className="form-group">
-              <label>Horário</label>
-              <input value={form.schedule||''} onChange={e=>setForm({...form,schedule:e.target.value})} placeholder="Ex: Hoje · 19:00" />
+              <label>Horário (apenas para evento único)</label>
+              <input value={form.schedule||''} onChange={e=>setForm({...form,schedule:e.target.value})} placeholder="Ex: Hoje · 19:00" disabled={form.recurrence_type && form.recurrence_type!=='none'} style={(form.recurrence_type && form.recurrence_type!=='none')?{background:'var(--bg)',color:'var(--muted)'}:{}} />
             </div>
             <div className="form-group">
               <label>Preço (R$)</label>
@@ -527,7 +527,7 @@ function ActivitiesTab({ showToast, categories = [] }) {
             )}
             {form.recurrence_type && form.recurrence_type!=='none' && (
               <div className="form-group">
-                <label>Horário da Atividade</label>
+                <label>Horário da Recorrência (para eventos repetidos)</label>
                 <input type="time" value={form.recurrence_time||''} onChange={e=>setForm({...form,recurrence_time:e.target.value})} />
               </div>
             )}
