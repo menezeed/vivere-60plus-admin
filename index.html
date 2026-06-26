@@ -108,6 +108,7 @@
     outline: none; transition: border 0.15s;
   }
   .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--green); background: #fff; }
+  .form-group input:disabled, .form-group select:disabled, .form-group textarea:disabled { background: var(--bg) !important; color: var(--muted) !important; cursor: not-allowed; opacity: 0.7; }
   .form-group textarea { resize: vertical; min-height: 80px; }
   .form-check  { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; }
   .form-check input { width: 16px; height: 16px; accent-color: var(--green); }
@@ -352,7 +353,7 @@ function ActivitiesTab({ showToast, categories = [] }) {
     if (!r.venue_id)                                        missing.push('Local');
     if (!r.recurrence_type || r.recurrence_type === 'none') {
       if (!r.start_date) missing.push('Data de início');
-    } else if (r.recurrence_type === 'weekly' || r.recurrence_type === 'monthly') {
+    } else if (r.recurrence_type === 'weekly' || r.recurrence_type === 'biweekly' || r.recurrence_type === 'monthly') {
       if (!r.recurrence_days || r.recurrence_days.length === 0) missing.push('Dias da recorrência');
       if (!r.recurrence_time) missing.push('Horário da recorrência (para eventos repetidos)');
     }
@@ -415,7 +416,7 @@ function ActivitiesTab({ showToast, categories = [] }) {
                 <td><strong>{r.title}</strong></td>
                 <td style={{color:'var(--muted)',fontSize:13}}>{venues.find(v=>v.id===r.venue_id)?.name || '—'}</td>
                 <td><span className="badge badge-gray">{r.category}</span></td>
-                <td>{r.recurrence_type && r.recurrence_type!=='none' ? <span className="badge badge-green">{r.recurrence_type==='daily'?'Diário':r.recurrence_type==='weekly'?'Semanal':'Mensal'}</span> : <span className="badge badge-gray">Único</span>}</td>
+                <td>{r.recurrence_type && r.recurrence_type!=='none' ? <span className="badge badge-green">{r.recurrence_type==='daily'?'Diário':r.recurrence_type==='weekly'?'Semanal':r.recurrence_type==='biweekly'?'Quinzenal':'Mensal'}</span> : <span className="badge badge-gray">Único</span>}</td>
                 <td style={{color:'var(--muted)',fontSize:13}}>{r.schedule}</td>
                 <td>{r.is_free ? <span className="badge badge-green">Grátis</span> : `R$ ${r.price}`}</td>
                 <td>
@@ -466,7 +467,7 @@ function ActivitiesTab({ showToast, categories = [] }) {
             </div>
             <div className="form-group">
               <label>Horário (apenas para evento único)</label>
-              <input value={form.schedule||''} onChange={e=>setForm({...form,schedule:e.target.value})} placeholder="Ex: Hoje · 19:00" disabled={form.recurrence_type && form.recurrence_type!=='none'} style={(form.recurrence_type && form.recurrence_type!=='none')?{background:'var(--bg)',color:'var(--muted)'}:{}} />
+              <input value={form.schedule||''} onChange={e=>setForm({...form,schedule:e.target.value})} placeholder="Ex: Hoje · 19:00" disabled={!!(form.recurrence_type && form.recurrence_type!=='none')} />
             </div>
             <div className="form-group">
               <label>Preço (R$)</label>
@@ -494,13 +495,19 @@ function ActivitiesTab({ showToast, categories = [] }) {
                 <option value="none">Evento único</option>
                 <option value="daily">Diário</option>
                 <option value="weekly">Semanal</option>
+                <option value="biweekly">Quinzenal</option>
                 <option value="monthly">Mensal</option>
               </select>
             </div>
-            {(form.recurrence_type==='weekly'||form.recurrence_type==='monthly') && (
+            {form.recurrence_type==='biweekly' && (
+              <div className="form-group form-full" style={{background:'var(--warn-l)',borderRadius:8,padding:'10px 12px'}}>
+                <span style={{fontSize:13,color:'var(--warn)'}}>⚠️ Para "Quinzenal", a <strong>Data Início</strong> abaixo é usada como referência da 1ª ocorrência — a atividade aparecerá nessa semana, pula a seguinte, aparece na próxima, e assim por diante.</span>
+              </div>
+            )}
+            {(form.recurrence_type==='weekly'||form.recurrence_type==='biweekly'||form.recurrence_type==='monthly') && (
               <div className="form-group form-full">
-                <label>{form.recurrence_type==='weekly'?'Dias da semana':'Dias do mês'}</label>
-                {form.recurrence_type==='weekly' ? (
+                <label>{(form.recurrence_type==='weekly'||form.recurrence_type==='biweekly')?'Dias da semana':'Dias do mês'}</label>
+                {(form.recurrence_type==='weekly'||form.recurrence_type==='biweekly') ? (
                   <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:4}}>
                     {['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map((d,i)=>{
                       const days = form.recurrence_days||[];
@@ -656,7 +663,7 @@ function VenuesTab({ showToast }) {
                 <td><strong>{r.name}</strong></td>
                 <td style={{color:'var(--muted)',fontSize:13}}>{r.address}</td>
                 <td><span className="badge badge-gray">{r.category}</span></td>
-                <td>{r.recurrence_type && r.recurrence_type!=='none' ? <span className="badge badge-green">{r.recurrence_type==='daily'?'Diário':r.recurrence_type==='weekly'?'Semanal':'Mensal'}</span> : <span className="badge badge-gray">Único</span>}</td>
+                <td>{r.recurrence_type && r.recurrence_type!=='none' ? <span className="badge badge-green">{r.recurrence_type==='daily'?'Diário':r.recurrence_type==='weekly'?'Semanal':r.recurrence_type==='biweekly'?'Quinzenal':'Mensal'}</span> : <span className="badge badge-gray">Único</span>}</td>
                 <td style={{color:'var(--muted)',fontSize:12}}>{r.lat?.toFixed(4)}, {r.lng?.toFixed(4)}</td>
                 <td>
                   <div style={{display:'flex',gap:6}}>
