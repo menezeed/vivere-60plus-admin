@@ -685,11 +685,8 @@ function VenuesTab({ showToast }) {
       </div>
 
       {modal!==null && (
-        <Modal title={modal==='new'?'Novo Local':'Editar Local'} onClose={()=>setModal(null)}>
-          <div className="form-grid">
-            <div className="form-group form-full"><label>Nome</label><input value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Nome do local" /></div>
-            <div className="form-group form-full"><label>Endereço</label><input value={form.address||''} onChange={e=>setForm({...form,address:e.target.value})} placeholder="Rua, número, cidade" /></div>
-            <div className="form-group"><label>Categoria</label><input value={form.category||''} onChange={e=>setForm({...form,category:e.target.value})} placeholder="Ex: Teatro" /></div>
+        <Modal title={modal==='new'?'Novo Local':'Editar Local'} onClose={()=>setModal(null)} width={1320}>
+          <div className="form-grid form-grid-3">
             <div className="form-group form-full" style={{position:'relative'}}>
               <label>Endereço (pesquisar)</label>
               <input value={addrQuery} onChange={e=>{setAddrQuery(e.target.value);searchAddr(e.target.value);}} placeholder="Digite o endereço ou nome do local..." autoComplete="off" />
@@ -707,14 +704,15 @@ function VenuesTab({ showToast }) {
                 </div>
               )}
             </div>
-            <div className="form-group form-full"><label>Nome</label><input value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Nome do local" /></div>
+            <div className="form-group"><label>Nome</label><input value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Nome do local" /></div>
+            <div className="form-group"><label>Categoria</label><input value={form.category||''} onChange={e=>setForm({...form,category:e.target.value})} placeholder="Ex: Teatro" /></div>
             <div className="form-group form-full"><label>Endereço completo</label><input value={form.address||''} onChange={e=>setForm({...form,address:e.target.value})} placeholder="Preenchido automaticamente" /></div>
             <div className="form-group"><label>Latitude</label><input readOnly value={form.lat||''} style={{background:'var(--bg)',color:'var(--muted)'}} placeholder="Auto" /></div>
             <div className="form-group"><label>Longitude</label><input readOnly value={form.lng||''} style={{background:'var(--bg)',color:'var(--muted)'}} placeholder="Auto" /></div>
-            <div className="form-group form-full"><label>Horário de Funcionamento</label><input value={form.opening_hours||''} onChange={e=>setForm({...form,opening_hours:e.target.value})} placeholder="Seg-Sex 9h-18h / Sáb 9h-13h" /></div>
-            <div className="form-group form-full"><label>Website</label><input value={form.website||''} onChange={e=>setForm({...form,website:e.target.value})} placeholder="https://..." /></div>
-            <div className="form-group form-full"><label>Telefone (com código do país)</label><input value={form.phone||''} onChange={e=>setForm({...form,phone:e.target.value})} placeholder="+55 11 99999-9999" /></div>
-            <div className="form-group form-full"><label>URL da Imagem</label><input value={form.image_url||''} onChange={e=>setForm({...form,image_url:e.target.value})} placeholder="https://..." /></div>
+            <div className="form-group"><label>Horário de Funcionamento</label><input value={form.opening_hours||''} onChange={e=>setForm({...form,opening_hours:e.target.value})} placeholder="Seg-Sex 9h-18h / Sáb 9h-13h" /></div>
+            <div className="form-group"><label>Website</label><input value={form.website||''} onChange={e=>setForm({...form,website:e.target.value})} placeholder="https://..." /></div>
+            <div className="form-group"><label>Telefone (com código do país)</label><input value={form.phone||''} onChange={e=>setForm({...form,phone:e.target.value})} placeholder="+55 11 99999-9999" /></div>
+            <div className="form-group"><label>URL da Imagem</label><input value={form.image_url||''} onChange={e=>setForm({...form,image_url:e.target.value})} placeholder="https://..." /></div>
           </div>
           <div className="form-actions">
             <button className="btn btn-outline" onClick={()=>setModal(null)}>Cancelar</button>
