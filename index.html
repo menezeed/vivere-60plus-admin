@@ -251,10 +251,10 @@ function LoginPage({ onLogin }) {
 }
 
 // ─── Modal genérico ──────────────────────────────────────────
-function Modal({ title, onClose, children }) {
+function Modal({ title, onClose, children, width }) {
   return (
     <div className="modal-overlay" onClick={e => e.target===e.currentTarget && onClose()}>
-      <div className="modal">
+      <div className="modal" style={width ? {maxWidth:width} : undefined}>
         <div className="modal-head">
           <h3>{title}</h3>
           <button className="modal-close" onClick={onClose}>✕</button>
@@ -445,7 +445,7 @@ function ActivitiesTab({ showToast, categories = [] }) {
       </div>
 
       {modal !== null && (
-        <Modal title={modal==='new'?'Nova Atividade':'Editar Atividade'} onClose={()=>setModal(null)}>
+        <Modal title={modal==='new'?'Nova Atividade':'Editar Atividade'} onClose={()=>setModal(null)} width={860}>
           <div className="form-grid">
             <div className="form-group form-full">
               <label>Título</label>
