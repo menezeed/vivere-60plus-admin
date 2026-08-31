@@ -336,8 +336,9 @@ function ActivitiesTab({ showToast, categories = [] }) {
   async function save() {
     setSaving(true);
     try {
-      // Clean empty UUID fields to null
-      const cleanForm = {...form};
+      // Remove campos que existem só no estado do formulário (nunca no banco) —
+      // evita erros de "coluna não existe" se algum dia surgir outro campo assim
+      const cleanForm = Object.fromEntries(Object.entries(form).filter(([k]) => !k.startsWith('_')));
       if (!cleanForm.venue_id) cleanForm.venue_id = null;
       if (!cleanForm.start_date) cleanForm.start_date = null;
       if (!cleanForm.end_date) cleanForm.end_date = null;
@@ -375,7 +376,6 @@ function ActivitiesTab({ showToast, categories = [] }) {
       title: `${row.title} (cópia)`,
       start_date: null,
       end_date: null,
-      _isDuplicate: true,
     });
     setModal('new');
   }
