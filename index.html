@@ -27,7 +27,6 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   .num { font-variant-numeric: tabular-nums; }
-  html, body { overflow-x: hidden; }
   body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
   h1, h2, h3 { font-family: 'DM Serif Display', serif; }
 
@@ -92,22 +91,21 @@
 
   /* Modal */
   .modal-overlay { position: fixed; inset: 0; background: rgba(28,25,23,0.45); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
-  .modal { background: var(--white); border-radius: 16px; width: 100%; max-width: 580px; max-height: 90vh; overflow-y: auto; overflow-x: hidden; box-shadow: 0 16px 48px rgba(28,25,23,0.16); }
+  .modal { background: var(--white); border-radius: 16px; width: 100%; max-width: 580px; max-height: 90vh; overflow-y: auto; box-shadow: 0 16px 48px rgba(28,25,23,0.16); }
   .modal-head { padding: 24px 28px 0; display: flex; align-items: center; justify-content: space-between; }
   .modal-head h3 { font-size: 20px; }
   .modal-body { padding: 20px 28px 28px; }
   .modal-close { background: var(--bg); border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
 
   /* Form */
-  .form-grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; min-width: 0; }
-  .form-grid-3 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .form-grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .form-full   { grid-column: 1 / -1; }
-  .form-group  { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .form-group  { display: flex; flex-direction: column; gap: 5px; }
   .form-group label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
   .form-group input, .form-group select, .form-group textarea {
     border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px;
     font-size: 14px; font-family: 'DM Sans'; color: var(--text); background: var(--bg);
-    outline: none; transition: border 0.15s; width: 100%; min-width: 0; box-sizing: border-box;
+    outline: none; transition: border 0.15s;
   }
   .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--green); background: #fff; }
   .form-group input:disabled, .form-group select:disabled, .form-group textarea:disabled { background: var(--bg) !important; color: var(--muted) !important; cursor: not-allowed; opacity: 0.7; }
@@ -165,11 +163,6 @@ const db = {
   },
   async get(table, params = '') {
     const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, { headers: this.getHeaders() });
-    if (!r.ok) {
-      const text = await r.text();
-      console.error('GET', table, r.status, text);
-      return [];
-    }
     return r.json();
   },
   async post(table, body) {
@@ -187,7 +180,24 @@ const db = {
     return data;
   },
   async delete(table, id) {
-    await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, { method: 'DELETE', headers: this.getHeaders() });
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, { method: 'DELETE', headers: { ...this.getHeaders(), 'Prefer': 'return=representation' } });
+    if (!r.ok) {
+      let msg = `Erro ao apagar (HTTP ${r.status})`;
+      try {
+        const data = await r.json();
+        if (data?.code === '23503') {
+          msg = 'Não é possível apagar: existem registos vinculados a este item.';
+        } else if (data?.message) {
+          msg = data.message;
+        }
+      } catch {}
+      throw new Error(msg);
+    }
+    const data = await r.json();
+    if (Array.isArray(data) && data.length === 0) {
+      throw new Error('Nada foi apagado — o item pode já não existir.');
+    }
+    return data;
   },
   async auth(email, password) {
     const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
@@ -253,10 +263,10 @@ function LoginPage({ onLogin }) {
 }
 
 // ─── Modal genérico ──────────────────────────────────────────
-function Modal({ title, onClose, children, width }) {
+function Modal({ title, onClose, children }) {
   return (
     <div className="modal-overlay" onClick={e => e.target===e.currentTarget && onClose()}>
-      <div className="modal" style={width ? {maxWidth:width} : undefined}>
+      <div className="modal">
         <div className="modal-head">
           <h3>{title}</h3>
           <button className="modal-close" onClick={onClose}>✕</button>
@@ -327,9 +337,13 @@ function ActivitiesTab({ showToast, categories = [] }) {
 
   async function remove(id) {
     if (!confirm('Apagar esta atividade?')) return;
-    await db.delete('activities', id);
-    showToast('Atividade apagada.', 'success');
-    load();
+    try {
+      await db.delete('activities', id);
+      showToast('Atividade apagada.', 'success');
+      load();
+    } catch (err) {
+      showToast(err.message || 'Erro ao apagar a atividade.', 'error');
+    }
   }
 
   function duplicate(row) {
@@ -447,8 +461,8 @@ function ActivitiesTab({ showToast, categories = [] }) {
       </div>
 
       {modal !== null && (
-        <Modal title={modal==='new'?'Nova Atividade':'Editar Atividade'} onClose={()=>setModal(null)} width={1320}>
-          <div className="form-grid form-grid-3">
+        <Modal title={modal==='new'?'Nova Atividade':'Editar Atividade'} onClose={()=>setModal(null)}>
+          <div className="form-grid">
             <div className="form-group form-full">
               <label>Título</label>
               <input value={form.title||''} onChange={e=>setForm({...form,title:e.target.value})} placeholder="Nome da atividade" />
@@ -492,11 +506,11 @@ function ActivitiesTab({ showToast, categories = [] }) {
               <label>URL da Imagem</label>
               <input value={form.imagem_url||''} onChange={e=>setForm({...form,imagem_url:e.target.value})} placeholder="https://..." />
             </div>
-            <div className="form-group">
+            <div className="form-group form-full">
               <label>Telefone (com código do país)</label>
               <input value={form.phone||''} onChange={e=>setForm({...form,phone:e.target.value})} placeholder="+55 11 99999-9999" />
             </div>
-            <div className="form-group">
+            <div className="form-group form-full">
               <label>Recorrência</label>
               <select value={form.recurrence_type||'none'} onChange={e=>setForm({...form,recurrence_type:e.target.value,recurrence_days:[]})}>
                 <option value="none">Evento único</option>
@@ -644,8 +658,13 @@ function VenuesTab({ showToast }) {
 
   async function remove(id) {
     if (!confirm('Apagar este local?')) return;
-    await db.delete('venues', id);
-    showToast('Local apagado.','success'); load();
+    try {
+      await db.delete('venues', id);
+      showToast('Local apagado.','success');
+      load();
+    } catch (err) {
+      showToast(err.message || 'Erro ao apagar o local.','error');
+    }
   }
 
   const filtered = rows.filter(r => r.name?.toLowerCase().includes(search.toLowerCase()));
@@ -685,8 +704,11 @@ function VenuesTab({ showToast }) {
       </div>
 
       {modal!==null && (
-        <Modal title={modal==='new'?'Novo Local':'Editar Local'} onClose={()=>setModal(null)} width={1320}>
-          <div className="form-grid form-grid-3">
+        <Modal title={modal==='new'?'Novo Local':'Editar Local'} onClose={()=>setModal(null)}>
+          <div className="form-grid">
+            <div className="form-group form-full"><label>Nome</label><input value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Nome do local" /></div>
+            <div className="form-group form-full"><label>Endereço</label><input value={form.address||''} onChange={e=>setForm({...form,address:e.target.value})} placeholder="Rua, número, cidade" /></div>
+            <div className="form-group"><label>Categoria</label><input value={form.category||''} onChange={e=>setForm({...form,category:e.target.value})} placeholder="Ex: Teatro" /></div>
             <div className="form-group form-full" style={{position:'relative'}}>
               <label>Endereço (pesquisar)</label>
               <input value={addrQuery} onChange={e=>{setAddrQuery(e.target.value);searchAddr(e.target.value);}} placeholder="Digite o endereço ou nome do local..." autoComplete="off" />
@@ -704,15 +726,14 @@ function VenuesTab({ showToast }) {
                 </div>
               )}
             </div>
-            <div className="form-group"><label>Nome</label><input value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Nome do local" /></div>
-            <div className="form-group"><label>Categoria</label><input value={form.category||''} onChange={e=>setForm({...form,category:e.target.value})} placeholder="Ex: Teatro" /></div>
+            <div className="form-group form-full"><label>Nome</label><input value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Nome do local" /></div>
             <div className="form-group form-full"><label>Endereço completo</label><input value={form.address||''} onChange={e=>setForm({...form,address:e.target.value})} placeholder="Preenchido automaticamente" /></div>
             <div className="form-group"><label>Latitude</label><input readOnly value={form.lat||''} style={{background:'var(--bg)',color:'var(--muted)'}} placeholder="Auto" /></div>
             <div className="form-group"><label>Longitude</label><input readOnly value={form.lng||''} style={{background:'var(--bg)',color:'var(--muted)'}} placeholder="Auto" /></div>
-            <div className="form-group"><label>Horário de Funcionamento</label><input value={form.opening_hours||''} onChange={e=>setForm({...form,opening_hours:e.target.value})} placeholder="Seg-Sex 9h-18h / Sáb 9h-13h" /></div>
-            <div className="form-group"><label>Website</label><input value={form.website||''} onChange={e=>setForm({...form,website:e.target.value})} placeholder="https://..." /></div>
-            <div className="form-group"><label>Telefone (com código do país)</label><input value={form.phone||''} onChange={e=>setForm({...form,phone:e.target.value})} placeholder="+55 11 99999-9999" /></div>
-            <div className="form-group"><label>URL da Imagem</label><input value={form.image_url||''} onChange={e=>setForm({...form,image_url:e.target.value})} placeholder="https://..." /></div>
+            <div className="form-group form-full"><label>Horário de Funcionamento</label><input value={form.opening_hours||''} onChange={e=>setForm({...form,opening_hours:e.target.value})} placeholder="Seg-Sex 9h-18h / Sáb 9h-13h" /></div>
+            <div className="form-group form-full"><label>Website</label><input value={form.website||''} onChange={e=>setForm({...form,website:e.target.value})} placeholder="https://..." /></div>
+            <div className="form-group form-full"><label>Telefone (com código do país)</label><input value={form.phone||''} onChange={e=>setForm({...form,phone:e.target.value})} placeholder="+55 11 99999-9999" /></div>
+            <div className="form-group form-full"><label>URL da Imagem</label><input value={form.image_url||''} onChange={e=>setForm({...form,image_url:e.target.value})} placeholder="https://..." /></div>
           </div>
           <div className="form-actions">
             <button className="btn btn-outline" onClick={()=>setModal(null)}>Cancelar</button>
@@ -757,8 +778,12 @@ function PartnersTab({ showToast }) {
 
   async function remove(id) {
     if (!confirm('Apagar este parceiro?')) return;
-    await db.delete('partners', id);
-    showToast('Parceiro apagado.','success'); load();
+    try {
+      await db.delete('partners', id);
+      showToast('Parceiro apagado.','success'); load();
+    } catch (err) {
+      showToast(err.message || 'Erro ao apagar o parceiro.','error');
+    }
   }
 
   const filtered = rows.filter(r => r.name?.toLowerCase().includes(search.toLowerCase()));
@@ -903,9 +928,13 @@ function CategoriesTab({ showToast, categories, setCategories, reloadCategories 
 
   async function remove(cat) {
     if (!confirm('Apagar esta categoria? As atividades com esta categoria não serão apagadas, mas deixarão de ter tradução automática.')) return;
-    await db.delete('categories', cat.id);
-    showToast('Categoria apagada.','success');
-    await reloadCategories();
+    try {
+      await db.delete('categories', cat.id);
+      showToast('Categoria apagada.','success');
+      await reloadCategories();
+    } catch (err) {
+      showToast(err.message || 'Erro ao apagar a categoria.','error');
+    }
   }
 
   return (
@@ -986,9 +1015,13 @@ function SuggestionsTab({ showToast }) {
 
   async function remove(id) {
     if (!confirm('Apagar esta sugestão?')) return;
-    await db.delete('suggestions', id);
-    showToast('Sugestão apagada.','success');
-    load();
+    try {
+      await db.delete('suggestions', id);
+      showToast('Sugestão apagada.','success');
+      load();
+    } catch (err) {
+      showToast(err.message || 'Erro ao apagar a sugestão.','error');
+    }
   }
 
   const filtered = rows.filter(r => {
@@ -1104,7 +1137,7 @@ function App() {
     setCategories(Array.isArray(data) ? data : []);
   }
 
-  React.useEffect(() => { loadCategories(); }, [session]);
+  React.useEffect(() => { loadCategories(); }, []);
 
   async function searchLocation(text) {
     if (text.length < 3) { setLocResults([]); return; }
