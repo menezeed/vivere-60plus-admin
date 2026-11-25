@@ -150,6 +150,7 @@
 </head>
 <body>
 <div id="root"></div>
+<script src="./review-queue.js"></script>
 <script type="text/babel">
 const { useState, useEffect, useCallback } = React;
 
@@ -1137,6 +1138,72 @@ function SuggestionsTab({ showToast }) {
 }
 
 // ─── App ─────────────────────────────────────────────────────
+const REVIEW_API_ENABLED = false;
+const REVIEW_API_STAGING_CONFIG = null;
+
+function ReviewQueueTab() {
+  const [query, setQuery] = useState({ kind:'activities', status:'pending', page:1 });
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [retry, setRetry] = useState(0);
+  const statusLabels = { pending:'Pendente', approved:'Aprovado', rejected:'Rejeitado' };
+
+  useEffect(() => {
+    const controller = new AbortController();
+    async function load() {
+      try {
+        const client = window.VivereReviewQueue.createClient({
+          ...REVIEW_API_STAGING_CONFIG, enabled:REVIEW_API_ENABLED,
+        });
+        const data = await client.list({ ...query, signal:controller.signal });
+        if (!controller.signal.aborted) setResult(data);
+      } catch (failure) {
+        if (!controller.signal.aborted) {
+          const messages = window.VivereReviewQueue?.messages;
+          setError({ code:failure.code, message:messages?.[failure.code] || 'A fila de staging está indisponível.' });
+        }
+      }
+    }
+    load();
+    return () => controller.abort();
+  }, [query, retry]);
+
+  function changeQuery(update) {
+    setResult(null);
+    setError(null);
+    setQuery({ ...query, ...update });
+  }
+
+  return (
+    <section aria-label="Fila de revisão de staging">
+      <div style={{display:'flex', flexWrap:'wrap', gap:12, marginBottom:12}}>
+        <label>Tipo <select value={query.kind} onChange={e=>changeQuery({kind:e.target.value, page:1})}>
+          <option value="activities">Atividades</option>
+          <option value="venues">Locais</option>
+        </select></label>
+        <label>Estado <select value={query.status} onChange={e=>changeQuery({status:e.target.value, page:1})}>
+          {Object.entries(statusLabels).map(([value, label])=><option key={value} value={value}>{label}</option>)}
+        </select></label>
+      </div>
+      {error && <div role="alert">{error.message} {[409, 'network', 'response'].includes(error.code) &&
+        <button className="btn btn-outline" onClick={()=>{ setError(null); setRetry(retry+1); }}>Tentar novamente</button>}</div>}
+      {!error && !result && <p role="status">A carregar a fila…</p>}
+      {result?.items.length === 0 && <p role="status">Sem itens para estes filtros.</p>}
+      {result?.items.length > 0 && <ul>
+        {result.items.map(item=><li key={item.id}>
+          <strong>{item.label}</strong> · {statusLabels[item.status]}
+          {query.kind === 'activities' && <> · {item.venue || 'Local indisponível'}</>}
+        </li>)}
+      </ul>}
+      <div style={{display:'flex', alignItems:'center', gap:8, marginTop:12}}>
+        <button className="btn btn-outline" disabled={query.page===1} onClick={()=>changeQuery({page:query.page-1})}>Anterior</button>
+        <span>Página {query.page}</span>
+        <button className="btn btn-outline" disabled={!result?.hasNext} onClick={()=>changeQuery({page:query.page+1})}>Seguinte</button>
+      </div>
+    </section>
+  );
+}
+
 function App() {
   const [session, setSession] = useState(null);
   // Restore token on reload
@@ -1206,6 +1273,7 @@ function App() {
     { id:'categories',  icon:'🏷️', label:'Categorias' },
     { id:'suggestions', icon:'💡', label:'Sugestões' },
     { id:'users',       icon:'👤', label:'Utilizadores' },
+    ...(REVIEW_API_ENABLED ? [{ id:'review', icon:'📋', label:'Revisão (staging)' }] : []),
   ];
 
   const TITLES = { activities:'Atividades', venues:'Locais', partners:'Parceiros', categories:'Categorias', suggestions:'Sugestões', users:'Utilizadores' };
@@ -1232,7 +1300,7 @@ function App() {
 
       <div className="main">
         <div className="topbar">
-          <h2>{TITLES[tab]}</h2>
+          <h2>{tab==='review' ? 'Revisão (staging)' : TITLES[tab]}</h2>
           <div className="topbar-actions" style={{display:'flex',alignItems:'center',gap:12}}>
             {/* Location + Radius bar */}
             <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg)',border:'1px solid var(--border)',borderRadius:10,padding:'6px 12px',cursor:'pointer'}} onClick={() => setShowLocModal(true)}>
@@ -1298,6 +1366,7 @@ function App() {
           {tab==='categories'  && <CategoriesTab  showToast={showToast} categories={categories} setCategories={setCategories} reloadCategories={loadCategories} />}
           {tab==='suggestions' && <SuggestionsTab showToast={showToast} />}
           {tab==='users'       && <UsersTab       showToast={showToast} />}
+          {REVIEW_API_ENABLED && tab==='review' && <ReviewQueueTab />}
         </div>
       </div>
 
